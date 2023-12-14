@@ -15,13 +15,10 @@ const (
 	// BackoffMaxDelay provided maximum delay when backing off after failed connection attempts.
 	BackoffMaxDelay = 3 * time.Second
 
-	// KeepAliveTime is the duration of time after which if the client doesn't see
-	// any activity it pings the server to see if the transport is still alive.
+	// KeepAliveTime 如此时长后客户端未收到响应则会 ping 服务端。
 	KeepAliveTime = time.Duration(10) * time.Second
 
-	// KeepAliveTimeout is the duration of time for which the client waits after having
-	// pinged for keepalive check and if no activity is seen even after that the connection
-	// is closed.
+	// KeepAliveTimeout 客户端 ping 服务端后，如此时长没响应会关闭连接。
 	KeepAliveTimeout = time.Duration(3) * time.Second
 
 	// InitialWindowSize we set it 1GB is to provide system's throughput.

@@ -5,8 +5,13 @@ import (
 	"fmt"
 	"google.golang.org/grpc"
 	"log"
+	"math"
 	"sync"
+	"sync/atomic"
 )
+
+// ErrClosed is the error resulting if the pool is closed via pool.Close().
+var ErrClosed = errors.New("pool is closed")
 
 // Pool interface describes a pool implementation.
 // An ideal pool is thread-safe and easy to use.
@@ -19,7 +24,7 @@ type Pool interface {
 	// Close closes the pool and all its connections. After Close() the pool is
 	// no longer usable. You can't make concurrent calls Close and Get method.
 	// It will be cause panic.
-	Close() error
+	Close()
 
 	// Status returns the current status of the pool.
 	Status() string
@@ -36,7 +41,7 @@ type pool struct {
 	current int32
 
 	// atomic, the using logic connection of pool
-	// logic connection = physical connection * maxConcurrentStreams
+	// logic connection = physical connection * options.maxConcurrentStreams
 	ref int32
 
 	// pool options
@@ -99,19 +104,82 @@ func New(address string, opts ...Option) (Pool, error) {
 	return p, nil
 }
 
+// Get ...
 func (p *pool) Get() (Conn, error) {
-	//TODO implement me
-	panic("implement me")
+	nextRef := p.incrRef()
+	p.RLock()
+	current := atomic.LoadInt32(&p.current)
+	p.RUnlock()
+	if current == 0 {
+		return nil, ErrClosed
+	}
+
+	// 现存逻辑连接数未被占满
+	if nextRef <= current*int32(p.opt.maxConcurrentStreams) {
+		next := atomic.AddUint32(&p.index, 1) % uint32(current)
+		return p.conns[next], nil
+	}
+
+	// 物理连接数已达上限
+	if current == int32(p.opt.maxActive) {
+		// 开启了连接复用，从池中拿一个物理连接
+		if p.opt.reuse {
+			next := atomic.AddUint32(&p.index, 1) % uint32(current)
+			return p.conns[next], nil
+		}
+		// 未开启连接复用，创建一次性物理连接
+		c, err := p.opt.dial(p.address)
+		return p.wrapConn(c, true), err
+	}
+
+	// 物理连接数未达上限，创建新的物理连接，放入池中
+	p.Lock()
+	current = atomic.LoadInt32(&p.current)
+	if current < int32(p.opt.maxActive) && nextRef > current*int32(p.opt.maxConcurrentStreams) {
+		// 2 times the incremental or the remain incremental
+		increment := current
+		if current+increment > int32(p.opt.maxActive) {
+			increment = int32(p.opt.maxActive) - current
+		}
+		var i int32
+		var err error
+		for i = 0; i < increment; i++ {
+			c, er := p.opt.dial(p.address)
+			if er != nil {
+				err = er
+				break
+			}
+			p.delete(int(current + i))
+			p.conns[current+i] = p.wrapConn(c, false)
+		}
+		current += i
+		log.Printf("grow pool: %d ---> %d, increment: %d, maxActive: %d\n",
+			p.current, current, increment, p.opt.maxActive)
+		atomic.StoreInt32(&p.current, current)
+		if err != nil {
+			p.Unlock()
+			return nil, err
+		}
+	}
+	p.Unlock()
+	next := atomic.AddUint32(&p.index, 1) % uint32(current)
+	return p.conns[next], nil
 }
 
-func (p *pool) Close() error {
-	//TODO implement me
-	panic("implement me")
+// Close ...
+func (p *pool) Close() {
+	atomic.StoreInt32(&p.closed, 1)
+	atomic.StoreUint32(&p.index, 0)
+	atomic.StoreInt32(&p.current, 0)
+	atomic.StoreInt32(&p.ref, 0)
+	p.deleteFrom(0)
+	log.Printf("close pool success: %v\n", p.Status())
 }
 
+// Status ...
 func (p *pool) Status() string {
-	//TODO implement me
-	panic("implement me")
+	return fmt.Sprintf("address:%s, index:%d, current:%d, ref:%d. option:%v",
+		p.address, p.index, p.current, p.ref, p.opt)
 }
 
 func (p *pool) wrapConn(cc *grpc.ClientConn, once bool) *conn {
@@ -120,4 +188,48 @@ func (p *pool) wrapConn(cc *grpc.ClientConn, once bool) *conn {
 		pool: p,
 		once: once,
 	}
+}
+
+// 原子操作，引用计数（逻辑连接数）加一。
+func (p *pool) incrRef() int32 {
+	newRef := atomic.AddInt32(&p.ref, 1)
+	if newRef == math.MaxInt32 {
+		panic(fmt.Sprintf("overflow ref: %d", newRef))
+	}
+	return newRef
+}
+
+// 原子操作，引用计数（逻辑连接数）减一。
+func (p *pool) decrRef() {
+	newRef := atomic.AddInt32(&p.ref, -1)
+	if newRef < 0 && atomic.LoadInt32(&p.closed) == 0 {
+		panic(fmt.Sprintf("negative ref: %d", newRef))
+	}
+	// 无引用，当前物理连接数均为空闲连接，且超过了最大空闲连接数
+	// 连接池缩容，将物理连接数减少至最大空闲连接数。
+	if newRef == 0 && atomic.LoadInt32(&p.current) > int32(p.opt.maxIdle) {
+		p.Lock()
+		if atomic.LoadInt32(&p.ref) == 0 {
+			log.Printf("shrink pool: %d ---> %d, decrement: %d, maxActive: %d\n",
+				p.current, p.opt.maxIdle, p.current-int32(p.opt.maxIdle), p.opt.maxActive)
+			atomic.StoreInt32(&p.current, int32(p.opt.maxIdle))
+			p.deleteFrom(p.opt.maxIdle)
+		}
+		p.Unlock()
+	}
+}
+
+func (p *pool) deleteFrom(begin int) {
+	for i := begin; i < p.opt.maxActive; i++ {
+		p.delete(i)
+	}
+}
+
+func (p *pool) delete(index int) {
+	conn := p.conns[index]
+	if conn == nil {
+		return
+	}
+	_ = conn.reset()
+	p.conns[index] = nil
 }
