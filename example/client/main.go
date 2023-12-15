@@ -11,7 +11,7 @@ import (
 	"github.com/chengyayu/grpcpool/example/pb"
 )
 
-var addr = flag.String("addr", "127.0.0.1:50000", "the address to connect to")
+var addr = flag.String("addr", "127.0.0.1:40000", "the address to connect to")
 
 func main() {
 	flag.Parse()

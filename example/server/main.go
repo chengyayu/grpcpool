@@ -14,7 +14,7 @@ import (
 	"github.com/chengyayu/grpcpool/example/pb"
 )
 
-var port = flag.Int("port", 50000, "port number")
+var port = flag.Int("port", 40000, "port number")
 
 // server implements EchoServer.
 type server struct {
