@@ -34,9 +34,6 @@ type pool struct {
 	// atomic, used to get connection random.
 	index uint32
 
-	// control the atomic var current's concurrent read write.
-	sync.RWMutex
-
 	// atomic, the current physical connection of pool.
 	current int32
 
@@ -55,6 +52,9 @@ type pool struct {
 
 	// closed set true when Close is called.
 	closed int32
+
+	// control the atomic var current's concurrent read write.
+	sync.RWMutex
 }
 
 // New return a connection pool.
