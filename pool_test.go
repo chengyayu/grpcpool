@@ -5,6 +5,7 @@ import (
 	"flag"
 	"github.com/chengyayu/grpcpool/example/pb"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -12,6 +13,13 @@ import (
 )
 
 var endpoint = flag.String("endpoint", "127.0.0.1:40000", "grpc server endpoint")
+
+// DialTest return a simple grpc connection with defined configurations.
+func DialTest(address string) (*grpc.ClientConn, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), DialTimeout)
+	defer cancel()
+	return grpc.DialContext(ctx, address, grpc.WithInsecure())
+}
 
 func newPool(opts ...Option) (Pool, *pool, error) {
 	opts = append(opts, Dial(DialTest))

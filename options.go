@@ -111,10 +111,3 @@ func DftDial(address string) (*grpc.ClientConn, error) {
 			PermitWithoutStream: true,
 		}))
 }
-
-// DialTest return a simple grpc connection with defined configurations.
-func DialTest(address string) (*grpc.ClientConn, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), DialTimeout)
-	defer cancel()
-	return grpc.DialContext(ctx, address, grpc.WithInsecure())
-}
