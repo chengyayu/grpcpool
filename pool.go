@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"google.golang.org/grpc"
-	"log"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -99,7 +98,7 @@ func New(address string, opts ...Option) (Pool, error) {
 		}
 		p.conns[i] = p.wrapConn(c, false)
 	}
-	log.Printf("new pool success: %v\n", p.Status())
+	//log.Printf("new pool success: %v\n", p.Status())
 
 	return p, nil
 }
@@ -153,8 +152,7 @@ func (p *pool) Get() (Conn, error) {
 			p.conns[current+i] = p.wrapConn(c, false)
 		}
 		current += i
-		log.Printf("grow pool: %d ---> %d, increment: %d, maxActive: %d\n",
-			p.current, current, increment, p.opt.maxActive)
+		//log.Printf("grow pool: %d ---> %d, increment: %d, maxActive: %d\n", p.current, current, increment, p.opt.maxActive)
 		atomic.StoreInt32(&p.current, current)
 		if err != nil {
 			p.Unlock()
@@ -173,7 +171,7 @@ func (p *pool) Close() {
 	atomic.StoreInt32(&p.current, 0)
 	atomic.StoreInt32(&p.ref, 0)
 	p.deleteFrom(0)
-	log.Printf("close pool success: %v\n", p.Status())
+	//log.Printf("close pool success: %v\n", p.Status())
 }
 
 // Status ...
@@ -210,8 +208,7 @@ func (p *pool) decrRef() {
 	if newRef == 0 && atomic.LoadInt32(&p.current) > int32(p.opt.maxIdle) {
 		p.Lock()
 		if atomic.LoadInt32(&p.ref) == 0 {
-			log.Printf("shrink pool: %d ---> %d, decrement: %d, maxActive: %d\n",
-				p.current, p.opt.maxIdle, p.current-int32(p.opt.maxIdle), p.opt.maxActive)
+			//log.Printf("shrink pool: %d ---> %d, decrement: %d, maxActive: %d\n", p.current, p.opt.maxIdle, p.current-int32(p.opt.maxIdle), p.opt.maxActive)
 			atomic.StoreInt32(&p.current, int32(p.opt.maxIdle))
 			p.deleteFrom(p.opt.maxIdle)
 		}

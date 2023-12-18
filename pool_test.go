@@ -20,7 +20,7 @@ func newPool(opts ...Option) (Pool, *pool, error) {
 }
 
 func TestNew(t *testing.T) {
-	p, nativePool, err := newPool(nil)
+	p, nativePool, err := newPool()
 	require.NoError(t, err)
 	defer p.Close()
 
@@ -52,7 +52,7 @@ func TestNew2(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
-	p, nativePool, err := newPool(nil)
+	p, nativePool, err := newPool()
 	require.NoError(t, err)
 	p.Close()
 
@@ -65,7 +65,7 @@ func TestClose(t *testing.T) {
 }
 
 func TestReset(t *testing.T) {
-	p, nativePool, err := newPool(nil)
+	p, nativePool, err := newPool()
 	require.NoError(t, err)
 	defer p.Close()
 
@@ -76,7 +76,7 @@ func TestReset(t *testing.T) {
 }
 
 func TestBasicGet(t *testing.T) {
-	p, nativePool, err := newPool(nil)
+	p, nativePool, err := newPool()
 	require.NoError(t, err)
 	defer p.Close()
 
@@ -94,7 +94,7 @@ func TestBasicGet(t *testing.T) {
 }
 
 func TestGetAfterClose(t *testing.T) {
-	p, _, err := newPool(nil)
+	p, _, err := newPool()
 	require.NoError(t, err)
 	p.Close()
 
@@ -265,6 +265,7 @@ func BenchmarkSingleRPC(b *testing.B) {
 		}
 	}
 
+	b.ResetTimer()
 	b.RunParallel(func(tpb *testing.PB) {
 		for tpb.Next() {
 			testFunc()
