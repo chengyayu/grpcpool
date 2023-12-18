@@ -59,10 +59,10 @@ type pool struct {
 // New return a connection pool.
 func New(address string, opts ...Option) (Pool, error) {
 	o := options{
-		dial:                 DefaultDial,
-		maxIdle:              8,
-		maxActive:            64,
-		maxConcurrentStreams: 64,
+		dial:                 DftDial,
+		maxIdle:              DftMaxIdle,
+		maxActive:            DftMaxActive,
+		maxConcurrentStreams: DftMaxConcurrentStreams,
 		reuse:                true,
 	}
 

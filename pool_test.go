@@ -272,3 +272,29 @@ func BenchmarkSingleRPC(b *testing.B) {
 		}
 	})
 }
+
+func BenchmarkOnlyOneRPC(b *testing.B) {
+	cc, err := DialTest(*endpoint)
+	if err != nil {
+		b.Fatalf("failed to create grpc conn: %v", err)
+	}
+
+	testFunc := func() {
+		client := pb.NewEchoClient(cc)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		data := make([]byte, size)
+		_, err = client.Say(ctx, &pb.EchoRequest{Message: data})
+		if err != nil {
+			b.Fatalf("unexpected error from Say: %v", err)
+		}
+	}
+
+	b.ResetTimer()
+	b.RunParallel(func(tpb *testing.PB) {
+		for tpb.Next() {
+			testFunc()
+		}
+	})
+}

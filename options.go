@@ -36,6 +36,15 @@ const (
 	MaxRecvMsgSize = 4 << 30
 )
 
+const (
+	// DftMaxIdle see options.MaxIdle
+	DftMaxIdle = int(8)
+	// DftMaxActive see options.MaxActive
+	DftMaxActive = int(64)
+	// DftMaxConcurrentStreams see options.MaxConcurrentStreams
+	DftMaxConcurrentStreams = int(64)
+)
+
 // Option is an options setting function.
 type Option func(o *options)
 
@@ -85,8 +94,8 @@ func Reuse(reuse bool) Option {
 	return func(o *options) { o.reuse = reuse }
 }
 
-// DefaultDial return a grpc connection with defined configurations.
-func DefaultDial(address string) (*grpc.ClientConn, error) {
+// DftDial return a grpc connection with defined configurations.
+func DftDial(address string) (*grpc.ClientConn, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), DialTimeout)
 	defer cancel()
 	return grpc.DialContext(ctx, address,
