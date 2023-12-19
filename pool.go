@@ -56,7 +56,6 @@ type pool struct {
 	sync.RWMutex
 }
 
-// New return a connection pool.
 func New(address string, opts ...Option) (Pool, error) {
 	o := options{
 		dial:                 DftDial,
@@ -103,7 +102,6 @@ func New(address string, opts ...Option) (Pool, error) {
 	return p, nil
 }
 
-// Get ...
 func (p *pool) Get() (Conn, error) {
 	nextRef := p.incrRef()
 	p.RLock()
@@ -164,7 +162,6 @@ func (p *pool) Get() (Conn, error) {
 	return p.conns[next], nil
 }
 
-// Close ...
 func (p *pool) Close() {
 	atomic.StoreInt32(&p.closed, 1)
 	atomic.StoreUint32(&p.index, 0)
@@ -174,7 +171,6 @@ func (p *pool) Close() {
 	//log.Printf("close pool success: %v\n", p.Status())
 }
 
-// Status ...
 func (p *pool) Status() string {
 	return fmt.Sprintf("address:%s, index:%d, current:%d, ref:%d. option:%v",
 		p.address, p.index, p.current, p.ref, p.opt)
