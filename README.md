@@ -12,51 +12,51 @@
     - maxConcurrentStreams int 每个物理连接内支持的最大并发流数。
     - reuse bool 如果 maxActive 已达上限，继续获取连接时，是否继续使用池内连接。否：会创建一个一次性连接（用完即销毁）返回。
 - 根据参数自动扩、缩容。
-- 池满后获取连接的策略。
+- 根据参数执行池满后获取连接的策略。
 
 ## 基准测试
 
-1. 预先初始化一个连接池，每次请求从池获取一个连接。
+1. 每轮并发请求共用一个连接池，每次请求从池获取一个连接：
 
 ```shell
-go test -bench='BenchmarkPoolRPC' -benchtime=5000x -count=3 -benchmem .
+go test -run=none -parallel=2 -bench="^BenchmarkPoolRPC" -benchtime=5000x -count=3 -benchmem
 goos: linux
 goarch: amd64
 pkg: github.com/chengyayu/grpcpool
 cpu: AMD Ryzen 7 3700U with Radeon Vega Mobile Gfx  
-BenchmarkPoolRPC-8          5000           4895632 ns/op         8404161 B/op        109 allocs/op
-BenchmarkPoolRPC-8          5000           4903488 ns/op         8404146 B/op        109 allocs/op
-BenchmarkPoolRPC-8          5000           5306860 ns/op         8404156 B/op        109 allocs/op
+BenchmarkPoolRPC-8          5000           4657010 ns/op         8404197 B/op        109 allocs/op
+BenchmarkPoolRPC-8          5000           4654517 ns/op         8404151 B/op        109 allocs/op
+BenchmarkPoolRPC-8          5000           4642664 ns/op         8404177 B/op        109 allocs/op
 PASS
-ok      github.com/chengyayu/grpcpool   75.850s
+ok      github.com/chengyayu/grpcpool   69.855s
 ```
 
-2. 每次请求创建一个新连接。
+2. 每个请求创建一个新连接：
 
 ```shell
-go test -bench='BenchmarkSingleRPC' -benchtime=5000x -count=3 -benchmem .
+go test -run=none -parallel=2 -bench="^BenchmarkSingleRPC" -benchtime=5000x -count=3 -benchmem
 goos: linux
 goarch: amd64
 pkg: github.com/chengyayu/grpcpool
 cpu: AMD Ryzen 7 3700U with Radeon Vega Mobile Gfx  
-BenchmarkSingleRPC-8        5000           6532750 ns/op         8519701 B/op        587 allocs/op
-BenchmarkSingleRPC-8        5000           6114239 ns/op         8519594 B/op        594 allocs/op
-BenchmarkSingleRPC-8        5000           6623537 ns/op         8519824 B/op        605 allocs/op
+BenchmarkSingleRPC-8        5000           5077726 ns/op         8523635 B/op        691 allocs/op
+BenchmarkSingleRPC-8        5000           5094132 ns/op         8523640 B/op        691 allocs/op
+BenchmarkSingleRPC-8        5000           5307944 ns/op         8523638 B/op        691 allocs/op
 PASS
-ok      github.com/chengyayu/grpcpool   97.918s
+ok      github.com/chengyayu/grpcpool   77.499s
 ```
 
-3. 全局公用一个连接
+3. 每轮并发请求共用一个连接：
 
 ```shell
-go test -bench='BenchmarkOnlyOneRPC' -benchtime=5000x -count=3 -benchmem .
+go test -run=none -parallel=2 -bench="^BenchmarkOnlyOneRPC" -benchtime=5000x -count=3 -benchmem
 goos: linux
 goarch: amd64
 pkg: github.com/chengyayu/grpcpool
 cpu: AMD Ryzen 7 3700U with Radeon Vega Mobile Gfx  
-BenchmarkOnlyOneRPC-8               5000           6984967 ns/op         8403239 B/op        106 allocs/op
-BenchmarkOnlyOneRPC-8               5000           6873981 ns/op         8403239 B/op        106 allocs/op
-BenchmarkOnlyOneRPC-8               5000           6604527 ns/op         8403238 B/op        106 allocs/op
+BenchmarkOnlyOneRPC-8               5000           6050398 ns/op         8403255 B/op        106 allocs/op
+BenchmarkOnlyOneRPC-8               5000           5979344 ns/op         8403247 B/op        106 allocs/op
+BenchmarkOnlyOneRPC-8               5000           6037154 ns/op         8403248 B/op        106 allocs/op
 PASS
-ok      github.com/chengyayu/grpcpool   102.623s
+ok      github.com/chengyayu/grpcpool   90.410s
 ```

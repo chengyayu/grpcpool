@@ -172,8 +172,8 @@ func (p *pool) Close() {
 }
 
 func (p *pool) Status() string {
-	return fmt.Sprintf("address:%s, index:%d, current:%d, ref:%d. option:%v",
-		p.address, p.index, p.current, p.ref, p.opt)
+	return fmt.Sprintf("ptr: %p, address:%s, closed:%d, index:%d, current:%d, ref:%d. option:%v",
+		p, p.address, p.closed, p.index, p.current, p.ref, p.opt)
 }
 
 func (p *pool) wrapConn(cc *grpc.ClientConn, once bool) *conn {

@@ -7,10 +7,10 @@ benchmark: benchmarkOnlyOneRPC benchmarkSingleRPC benchmarkPoolRPC
 
 .PHONY: benchmarkOnlyOneRPC benchmarkSingleRPC benchmarkPoolRPC
 benchmarkOnlyOneRPC:
-	go test -bench='BenchmarkOnlyOneRPC' -benchtim=5000x -count=3 -benchmem .
+	go test -run=none -parallel=2 -bench="^BenchmarkOnlyOneRPC" -benchtime=5000x -count=3 -benchmem
 benchmarkSingleRPC:
-	go test -bench='BenchmarkSingleRPC' -benchtime=5000x -count=3 -benchmem .
+	go test -run=none -parallel=2 -bench="^BenchmarkSingleRPC" -benchtime=5000x -count=3 -benchmem
 benchmarkPoolRPC:
-	go test -bench='BenchmarkPoolRPC' -benchtime=5000x -count=3 -benchmem .
+	go test -run=none -parallel=2 -bench="^BenchmarkPoolRPC" -benchtime=5000x -count=3 -benchmem
 
 

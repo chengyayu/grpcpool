@@ -6,6 +6,9 @@ import (
 	"github.com/chengyayu/grpcpool/example/pb"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
+	"log"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -13,6 +16,84 @@ import (
 )
 
 var endpoint = flag.String("endpoint", "127.0.0.1:40000", "grpc server endpoint")
+
+var (
+	oncePoolOnce sync.Once
+	oncePool     *pool
+)
+
+func newOncePool(opts ...Option) (*pool, error) {
+	var (
+		p   Pool
+		err error
+	)
+	oncePoolOnce.Do(func() {
+		p, err = New(*endpoint, opts...)
+		log.Printf("***** new pool[%p],%s", p, p.Status())
+		oncePool = p.(*pool)
+	})
+
+	return oncePool, err
+}
+
+func TestBadConn(t *testing.T) {
+	opts := []Option{
+		Dial(func(address string) (*grpc.ClientConn, error) {
+			ctx, cancel := context.WithTimeout(context.Background(), DialTimeout)
+			defer cancel()
+			return grpc.DialContext(ctx, address,
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				//grpc.WithConnectParams(grpc.ConnectParams{Backoff: backoff.Config{MaxDelay: BackoffMaxDelay}}),
+				grpc.WithInitialWindowSize(InitialWindowSize),
+				grpc.WithInitialConnWindowSize(InitialConnWindowSize),
+				grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(MaxSendMsgSize)),
+				grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxRecvMsgSize)),
+				grpc.WithKeepaliveParams(keepalive.ClientParameters{
+					Time:                KeepAliveTime,
+					Timeout:             KeepAliveTimeout,
+					PermitWithoutStream: true,
+				}))
+		}),
+		MaxIdle(1),
+		MaxActive(1),
+		MaxConcurrentStreams(DftMaxConcurrentStreams),
+		Reuse(true), // 池满不复用连接，创建新连接
+	}
+
+	f := func() {
+		p, err := newOncePool(opts...)
+		if err != nil {
+			panic(err)
+		}
+
+		conn, err := p.Get()
+		if err != nil {
+			t.Fatalf("failed to get conn: %v", err)
+		}
+		defer conn.Close()
+
+		t.Log(p.Status())
+		client := pb.NewEchoClient(conn.Value())
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		data := make([]byte, size)
+		t.Logf("1 %p, %s", conn.Value(), conn.Value().GetState().String())
+		_, err = client.Say(ctx, &pb.EchoRequest{Message: data})
+		t.Logf("2 %p, %s", conn.Value(), conn.Value().GetState().String())
+		if err != nil {
+			t.Logf("unexpected error from Say: %v", err)
+		}
+	}
+
+	f()
+	f()
+
+	time.Sleep(30 * time.Second)
+
+	f()
+	f()
+}
 
 // DialTest return a simple grpc connection with defined configurations.
 func DialTest(address string) (*grpc.ClientConn, error) {
@@ -261,6 +342,7 @@ func BenchmarkSingleRPC(b *testing.B) {
 		if err != nil {
 			b.Fatalf("failed to create grpc conn: %v", err)
 		}
+		defer cc.Close()
 
 		client := pb.NewEchoClient(cc)
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -284,8 +366,9 @@ func BenchmarkSingleRPC(b *testing.B) {
 func BenchmarkOnlyOneRPC(b *testing.B) {
 	cc, err := DialTest(*endpoint)
 	if err != nil {
-		b.Fatalf("failed to create grpc conn: %v", err)
+		b.Logf("dial to grpc server fail %v", err)
 	}
+	defer cc.Close()
 
 	testFunc := func() {
 		client := pb.NewEchoClient(cc)
@@ -293,7 +376,7 @@ func BenchmarkOnlyOneRPC(b *testing.B) {
 		defer cancel()
 
 		data := make([]byte, size)
-		_, err = client.Say(ctx, &pb.EchoRequest{Message: data})
+		_, err := client.Say(ctx, &pb.EchoRequest{Message: data})
 		if err != nil {
 			b.Fatalf("unexpected error from Say: %v", err)
 		}
