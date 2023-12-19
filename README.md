@@ -13,6 +13,7 @@
     - reuse bool 如果 maxActive 已达上限，继续获取连接时，是否继续使用池内连接。否：会创建一个一次性连接（用完即销毁）返回。
 - 根据参数自动扩、缩容。
 - 池满后获取连接的策略。
+- 获取连接时对连接状态进行判断，根据预设 handler 对连接进行处理。
 
 ## 基准测试
 
@@ -46,7 +47,7 @@ PASS
 ok      github.com/chengyayu/grpcpool   97.918s
 ```
 
-3. 全局公用一个连接
+3. 全局共用一个连接
 
 ```shell
 go test -bench='BenchmarkOnlyOneRPC' -benchtime=5000x -count=3 -benchmem .

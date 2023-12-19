@@ -67,6 +67,9 @@ type options struct {
 	// the connection to return, If reuse is false and the pool is at the maxActive limit,
 	// create a one-time connection to return.
 	reuse bool
+
+	// connStateHandler 针对不同连接状态处理当前连接
+	connStateHandler IConnStateHandler
 }
 
 // Dial with factory function for *grpc.ClientConn
@@ -94,6 +97,11 @@ func Reuse(reuse bool) Option {
 	return func(o *options) { o.reuse = reuse }
 }
 
+// ConnStateHandler with pool connStateHandler
+func ConnStateHandler(h IConnStateHandler) Option {
+	return func(o *options) { o.connStateHandler = h }
+}
+
 // DftDial return a grpc connection with defined configurations.
 func DftDial(address string) (*grpc.ClientConn, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), DialTimeout)
@@ -110,4 +118,26 @@ func DftDial(address string) (*grpc.ClientConn, error) {
 			Timeout:             KeepAliveTimeout,
 			PermitWithoutStream: true,
 		}))
+}
+
+type DftConnStateHandler struct{}
+
+func (p *DftConnStateHandler) HandleIdle(c *conn) (Conn, error) {
+	return c, nil
+}
+
+func (p *DftConnStateHandler) HandleConnecting(c *conn) (Conn, error) {
+	return c, nil
+}
+
+func (p *DftConnStateHandler) HandleReady(c *conn) (Conn, error) {
+	return c, nil
+}
+
+func (p *DftConnStateHandler) HandleTransientFailure(c *conn) (Conn, error) {
+	return c, nil
+}
+
+func (p *DftConnStateHandler) HandleShutDown(c *conn) (Conn, error) {
+	return c, nil
 }

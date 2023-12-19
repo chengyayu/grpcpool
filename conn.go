@@ -28,13 +28,13 @@ func (c *conn) Value() *grpc.ClientConn {
 func (c *conn) Close() error {
 	c.pool.decrRef()
 	if c.once {
-		return c.reset()
+		return c.rest()
 	}
 	return nil
 }
 
-// 重置连接，让它等待垃圾回收
-func (c *conn) reset() error {
+// rest 重置连接，让它等待垃圾回收
+func (c *conn) rest() error {
 	cc := c.cc
 	c.cc = nil
 	c.once = false

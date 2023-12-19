@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -56,9 +57,9 @@ type pool struct {
 	sync.RWMutex
 }
 
-// New return a connection pool.
 func New(address string, opts ...Option) (Pool, error) {
 	o := options{
+		connStateHandler:     &DftConnStateHandler{},
 		dial:                 DftDial,
 		maxIdle:              DftMaxIdle,
 		maxActive:            DftMaxActive,
@@ -96,19 +97,16 @@ func New(address string, opts ...Option) (Pool, error) {
 			p.Close()
 			return nil, fmt.Errorf("dial is not able to fill the pool: %s", err)
 		}
-		p.conns[i] = p.wrapConn(c, false)
+		p.conns[i] = p.newConn(c, false)
 	}
 	//log.Printf("new pool success: %v\n", p.Status())
 
 	return p, nil
 }
 
-// Get ...
 func (p *pool) Get() (Conn, error) {
 	nextRef := p.incrRef()
-	p.RLock()
 	current := atomic.LoadInt32(&p.current)
-	p.RUnlock()
 	if current == 0 {
 		return nil, ErrClosed
 	}
@@ -116,7 +114,7 @@ func (p *pool) Get() (Conn, error) {
 	// 现存逻辑连接数未被占满
 	if nextRef <= current*int32(p.opt.maxConcurrentStreams) {
 		next := atomic.AddUint32(&p.index, 1) % uint32(current)
-		return p.conns[next], nil
+		return p.wrapConn(p.conns[next])
 	}
 
 	// 物理连接数已达上限
@@ -124,17 +122,17 @@ func (p *pool) Get() (Conn, error) {
 		// 开启了连接复用，从池中拿一个物理连接
 		if p.opt.reuse {
 			next := atomic.AddUint32(&p.index, 1) % uint32(current)
-			return p.conns[next], nil
+			return p.wrapConn(p.conns[next])
 		}
 		// 未开启连接复用，创建一次性物理连接
 		c, err := p.opt.dial(p.address)
-		return p.wrapConn(c, true), err
+		return p.newConn(c, true), err
 	}
 
-	// 物理连接数未达上限，创建新的物理连接，放入池中
+	//（现存逻辑连接数已被沾满 && 物理连接数未达上限）创建新的物理连接，放入池中
 	p.Lock()
 	current = atomic.LoadInt32(&p.current)
-	if current < int32(p.opt.maxActive) && nextRef > current*int32(p.opt.maxConcurrentStreams) {
+	if current < int32(p.opt.maxActive) {
 		// 2 times the incremental or the remain incremental
 		increment := current
 		if current+increment > int32(p.opt.maxActive) {
@@ -149,7 +147,7 @@ func (p *pool) Get() (Conn, error) {
 				break
 			}
 			p.delete(int(current + i))
-			p.conns[current+i] = p.wrapConn(c, false)
+			p.conns[current+i] = p.newConn(c, false)
 		}
 		current += i
 		//log.Printf("grow pool: %d ---> %d, increment: %d, maxActive: %d\n", p.current, current, increment, p.opt.maxActive)
@@ -161,10 +159,9 @@ func (p *pool) Get() (Conn, error) {
 	}
 	p.Unlock()
 	next := atomic.AddUint32(&p.index, 1) % uint32(current)
-	return p.conns[next], nil
+	return p.wrapConn(p.conns[next])
 }
 
-// Close ...
 func (p *pool) Close() {
 	atomic.StoreInt32(&p.closed, 1)
 	atomic.StoreUint32(&p.index, 0)
@@ -174,17 +171,35 @@ func (p *pool) Close() {
 	//log.Printf("close pool success: %v\n", p.Status())
 }
 
-// Status ...
 func (p *pool) Status() string {
 	return fmt.Sprintf("address:%s, index:%d, current:%d, ref:%d. option:%v",
 		p.address, p.index, p.current, p.ref, p.opt)
 }
 
-func (p *pool) wrapConn(cc *grpc.ClientConn, once bool) *conn {
+func (p *pool) newConn(cc *grpc.ClientConn, once bool) *conn {
 	return &conn{
 		cc:   cc,
 		pool: p,
 		once: once,
+	}
+}
+
+func (p *pool) wrapConn(c *conn) (Conn, error) {
+	handler := p.opt.connStateHandler
+	state := c.cc.GetState()
+	switch state {
+	case connectivity.Idle:
+		return handler.HandleIdle(c)
+	case connectivity.Connecting:
+		return handler.HandleConnecting(c)
+	case connectivity.Ready:
+		return handler.HandleReady(c)
+	case connectivity.TransientFailure:
+		return handler.HandleTransientFailure(c)
+	case connectivity.Shutdown:
+		return handler.HandleShutDown(c)
+	default:
+		return nil, errors.New("INVALID GRPC STATE")
 	}
 }
 
@@ -227,6 +242,6 @@ func (p *pool) delete(index int) {
 	if conn == nil {
 		return
 	}
-	_ = conn.reset()
+	_ = conn.rest()
 	p.conns[index] = nil
 }
