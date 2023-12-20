@@ -6,7 +6,6 @@ import (
 	"github.com/chengyayu/grpcpool/example/pb"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 	"log"
@@ -79,9 +78,9 @@ func TestBadConn(t *testing.T) {
 		defer cancel()
 
 		data := make([]byte, size)
-		t.Logf("1 %p, %s", conn.Value(), conn.Value().GetState().String())
+		t.Logf("1 %p, %s", conn.Value(), conn.GetState().String())
 		_, err = client.Say(ctx, &pb.EchoRequest{Message: data})
-		t.Logf("2 %p, %s", conn.Value(), conn.Value().GetState().String())
+		t.Logf("2 %p, %s", conn.Value(), conn.GetState().String())
 		if err != nil {
 			t.Logf("unexpected error from Say: %v", err)
 		}
@@ -192,12 +191,13 @@ func TestAfterCloseGRPCChannel(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, true, conn.Value() != nil)
 
-	conn.Value().Close()
-	t.Logf("after close GRPCChannel, the channel's state is :%s", conn.Value().GetState())
-	time.Sleep(5 * time.Second)
-	t.Logf("after close GRPCChannel 5s, the channel's state is :%s", conn.Value().GetState())
-	require.EqualValues(t, true, conn.Value() != nil)
-	require.EqualValues(t, true, conn.Value().GetState() == connectivity.Shutdown)
+	// 现在不返回 *grpc.ClientConn 了，返回一个接口看你怎么关！
+	//conn.Value().Close()
+	//t.Logf("after close GRPCChannel, the channel's state is :%s", conn.Value().GetState())
+	//time.Sleep(5 * time.Second)
+	//t.Logf("after close GRPCChannel 5s, the channel's state is :%s", conn.Value().GetState())
+	//require.EqualValues(t, true, conn.Value() != nil)
+	//require.EqualValues(t, true, conn.Value().GetState() == connectivity.Shutdown)
 }
 
 func TestGetAfterClose(t *testing.T) {
