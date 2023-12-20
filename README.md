@@ -4,7 +4,7 @@
 
 ## 特性
 
-- 池化对象为逻辑连接，本质是逻辑连接（stream）池。
+- 池化对象为逻辑连接，本质是逻辑连接（subchannel）池。
 - 支持应用层自定义参数。
     - dial func(address string) (*grpc.ClientConn, error) 创建连接的函数，同时支持配置 grpc 连接自定义参数。
     - maxIdle int 连接池内最大空闲（物理）连接数。默认初始化数量与之相同。
@@ -65,4 +65,5 @@ ok      github.com/chengyayu/grpcpool   90.410s
 
 - [https://github.com/grpc/grpc-go](https://github.com/grpc/grpc-go)
 - [stackoverflow.com grpc-cpp-how-can-i-check-if-the-rpc-channel-connected-successfully](https://stackoverflow.com/questions/64484690/grpc-cpp-how-can-i-check-if-the-rpc-channel-connected-successfully)
+- [https://grpc.github.io/grpc/core/md_doc_connectivity-semantics-and-api.html](https://grpc.github.io/grpc/core/md_doc_connectivity-semantics-and-api.html)
 - [github.com/shimingyah/pool](https://github.com/shimingyah/pool)

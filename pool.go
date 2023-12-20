@@ -111,7 +111,7 @@ func (p *pool) Get() (Conn, error) {
 		return nil, ErrClosed
 	}
 
-	// 现存逻辑连接数未被占满
+	// 当前逻辑连接数未被占满
 	if nextRef <= current*int32(p.opt.maxConcurrentStreams) {
 		next := atomic.AddUint32(&p.index, 1) % uint32(current)
 		return p.conns[next], nil
