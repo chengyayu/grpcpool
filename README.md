@@ -60,3 +60,9 @@ BenchmarkOnlyOneRPC-8               5000           6037154 ns/op         8403248
 PASS
 ok      github.com/chengyayu/grpcpool   90.410s
 ```
+
+## 参考资料
+
+- [https://github.com/grpc/grpc-go](https://github.com/grpc/grpc-go)
+- [stackoverflow.com grpc-cpp-how-can-i-check-if-the-rpc-channel-connected-successfully](https://stackoverflow.com/questions/64484690/grpc-cpp-how-can-i-check-if-the-rpc-channel-connected-successfully)
+- [github.com/shimingyah/pool](https://github.com/shimingyah/pool)
