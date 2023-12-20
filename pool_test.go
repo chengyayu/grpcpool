@@ -6,6 +6,7 @@ import (
 	"github.com/chengyayu/grpcpool/example/pb"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 	"log"
@@ -180,6 +181,23 @@ func TestBasicGet(t *testing.T) {
 
 	require.EqualValues(t, 1, nativePool.index)
 	require.EqualValues(t, 0, nativePool.ref)
+}
+
+func TestAfterCloseGRPCChannel(t *testing.T) {
+	p, _, err := newPool()
+	require.NoError(t, err)
+	defer p.Close()
+
+	conn, err := p.Get()
+	require.NoError(t, err)
+	require.EqualValues(t, true, conn.Value() != nil)
+
+	conn.Value().Close()
+	t.Logf("after close GRPCChannel, the channel's state is :%s", conn.Value().GetState())
+	time.Sleep(5 * time.Second)
+	t.Logf("after close GRPCChannel 5s, the channel's state is :%s", conn.Value().GetState())
+	require.EqualValues(t, true, conn.Value() != nil)
+	require.EqualValues(t, true, conn.Value().GetState() == connectivity.Shutdown)
 }
 
 func TestGetAfterClose(t *testing.T) {
