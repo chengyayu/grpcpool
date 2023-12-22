@@ -64,6 +64,8 @@ ok      github.com/chengyayu/grpcpool   90.410s
 ## 参考资料
 
 - [https://github.com/grpc/grpc-go](https://github.com/grpc/grpc-go)
-- [stackoverflow.com grpc-cpp-how-can-i-check-if-the-rpc-channel-connected-successfully](https://stackoverflow.com/questions/64484690/grpc-cpp-how-can-i-check-if-the-rpc-channel-connected-successfully)
-- [https://grpc.github.io/grpc/core/md_doc_connectivity-semantics-and-api.html](https://grpc.github.io/grpc/core/md_doc_connectivity-semantics-and-api.html)
+- [需要每次检查连接状态吗？stackoverflow.com](https://stackoverflow.com/questions/64484690/grpc-cpp-how-can-i-check-if-the-rpc-channel-connected-successfully)
+- [GRPC doc 连接状态变化](https://grpc.github.io/grpc/core/md_doc_connectivity-semantics-and-api.html)
+- [GRPC doc 负载均衡机制](https://github.com/grpc/grpc/blob/master/doc/load-balancing.md)
 - [github.com/shimingyah/pool](https://github.com/shimingyah/pool)
+- [GRPC 在 K8S 中的负载均衡](https://www.cnblogs.com/BlueMountain-HaggenDazs/p/17071303.html#kuberesolver)
