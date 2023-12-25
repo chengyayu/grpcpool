@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: grpec-client
+spec:
+  minReadySeconds: 5
+  selector:
+    matchLabels:
+      name: grpc-client
+  template:
+    metadata:
+      labels:
+        name: grpc-client
+    spec:
+      containers:
+        # ------------------- agent ------------------- #
+        - name: grpc-agent
+          image: grpc-client:v1
+          imagePullPolicy: IfNotPresent

@@ -11,7 +11,7 @@ import (
 	"github.com/chengyayu/grpcpool/example/pb"
 )
 
-var addr = flag.String("addr", "127.0.0.1:40000", "the address to connect to")
+var addr = flag.String("addr", "127.0.0.1:30000", "the address to connect to")
 
 func main() {
 	flag.Parse()
@@ -22,19 +22,39 @@ func main() {
 	}
 	defer p.Close()
 
-	conn, err := p.Get()
-	if err != nil {
-		log.Fatalf("failed to get conn: %v", err)
-	}
-	defer conn.Close()
+	loop(p)
 
-	client := pb.NewEchoClient(conn.Value())
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	hang := make(chan int)
+	<-hang
+}
 
-	res, err := client.Say(ctx, &pb.EchoRequest{Message: []byte("hi")})
-	if err != nil {
-		log.Fatalf("unexpected error from Say: %v", err)
+func loop(p pool.Pool) {
+	defer holdpanic()
+	do := func() {
+		conn, err := p.Get()
+		if err != nil {
+			log.Fatalf("failed to get conn: %v", err)
+		}
+		defer conn.Close()
+
+		client := pb.NewEchoClient(conn.Value())
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		res, err := client.Say(ctx, &pb.EchoRequest{Message: []byte("hi")})
+		if err != nil {
+			log.Fatalf("unexpected error from Say: %v", err)
+		}
+		fmt.Println("rpc response:", res)
 	}
-	fmt.Println("rpc response:", res)
+	for {
+		do()
+		time.Sleep(time.Second * 5)
+	}
+}
+
+func holdpanic() {
+	if err := recover(); err != nil {
+		log.Printf("hold panic err: %+v", err)
+	}
 }

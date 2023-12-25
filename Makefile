@@ -14,3 +14,13 @@ benchmarkPoolRPC:
 	go test -run=none -parallel=2 -bench="^BenchmarkPoolRPC" -benchtime=5000x -count=3 -benchmem
 
 
+.PHONY: build deploy
+build:
+	go build -o ./example/client/client  ./example/client/main.go && \
+	go build -o ./example/server/server ./example/server/main.go && \
+	docker buildx build -t grpc-client:v1 -f ./example/client/Dockerfile --load . && \
+	docker buildx build -t grpc-server:v1 -f ./example/server/Dockerfile --load .
+
+deploy:
+	kubectl apply -f ./example/server/test-server.yaml && \
+	kubectl apply -f ./example/client/test-client.yaml

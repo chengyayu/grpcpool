@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"net"
 
@@ -14,21 +13,22 @@ import (
 	"github.com/chengyayu/grpcpool/example/pb"
 )
 
-var port = flag.Int("port", 40000, "port number")
+var addr = flag.String("addr", "0.0.0.0:30000", "port number")
 
 // server implements EchoServer.
 type server struct {
 	pb.UnimplementedEchoServer
 }
 
-func (s *server) Say(context.Context, *pb.EchoRequest) (*pb.EchoResponse, error) {
-	return &pb.EchoResponse{Message: []byte("hello world")}, nil
+func (s *server) Say(ctx context.Context, req *pb.EchoRequest) (*pb.EchoResponse, error) {
+	log.Printf("server replay: %+v", req)
+	return &pb.EchoResponse{Message: req.GetMessage()}, nil
 }
 
 func main() {
 	flag.Parse()
 
-	listen, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%v", *port))
+	listen, err := net.Listen("tcp", *addr)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
