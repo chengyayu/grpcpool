@@ -4,6 +4,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/sercand/kuberesolver/v5"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 	"log"
 	"time"
 
@@ -16,7 +20,33 @@ var addr = flag.String("addr", "127.0.0.1:30000", "the address to connect to")
 func main() {
 	flag.Parse()
 
-	p, err := pool.New(*addr)
+	var (
+		namespace   = "default"
+		servicename = "grpc-server"
+		serviceport = 30000
+	)
+	kuberesolver.RegisterInCluster()
+	endpoint := fmt.Sprintf("kubernetes:///%s.%s:%d", servicename, namespace, serviceport) // for kuberesolver
+
+	dialFn := func(address string) (*grpc.ClientConn, error) {
+		ctx, cancel := context.WithTimeout(context.Background(), pool.DialTimeout)
+		defer cancel()
+		return grpc.DialContext(ctx, address,
+			grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy":"round_robin"}`), // for kuberesolver
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithBackoffMaxDelay(pool.BackoffMaxDelay),
+			grpc.WithInitialWindowSize(pool.InitialWindowSize),
+			grpc.WithInitialConnWindowSize(pool.InitialConnWindowSize),
+			grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(pool.MaxSendMsgSize)),
+			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(pool.MaxRecvMsgSize)),
+			grpc.WithKeepaliveParams(keepalive.ClientParameters{
+				Time:                pool.KeepAliveTime,
+				Timeout:             pool.KeepAliveTimeout,
+				PermitWithoutStream: true,
+			}))
+	}
+
+	p, err := pool.New(endpoint, pool.Dial(dialFn), pool.MaxConcurrentStreams(4))
 	if err != nil {
 		log.Fatalf("failed to new pool: %v", err)
 	}
@@ -32,6 +62,7 @@ func loop(p pool.Pool) {
 	defer holdpanic()
 	do := func() {
 		conn, err := p.Get()
+		log.Printf("conn: %p, pool: %v", conn.Value(), p.Status())
 		if err != nil {
 			log.Fatalf("failed to get conn: %v", err)
 		}

@@ -1,8 +1,4 @@
 ---
-# ------------------- Dosec Service ------------------- #
-# 注意事项：
-# 1. 修改 web_api 链接
-# 2. 修改镜像版本
 
 apiVersion: v1
 kind: Service
@@ -26,7 +22,7 @@ kind: Deployment
 metadata:
   name: grpc-server
 spec:
-  replicas: 2
+  replicas: 3
   revisionHistoryLimit: 2
   strategy:
     rollingUpdate:
@@ -49,8 +45,13 @@ spec:
 #          key: node-role.kubernetes.io/master
       containers:
         - name: grpc-server
-          image: grpc-server:v1
+          image: grpc-server:v1.1452
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 30000
               protocol: TCP
+
+
+channel
+  subchannel-1
+  subchannel-2
