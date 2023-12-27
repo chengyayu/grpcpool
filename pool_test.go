@@ -3,7 +3,7 @@ package grpcpool
 import (
 	"context"
 	"flag"
-	"github.com/chengyayu/grpcpool/example/pb"
+	"github.com/chengyayu/grpcpool/example/single/pb"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
@@ -356,7 +356,7 @@ func BenchmarkPoolRPC(b *testing.B) {
 
 func BenchmarkSingleRPC(b *testing.B) {
 	testFunc := func() {
-		cc, err := DialTest(*endpoint)
+		cc, err := DftDial(*endpoint)
 		if err != nil {
 			b.Fatalf("failed to create grpc conn: %v", err)
 		}
@@ -382,7 +382,7 @@ func BenchmarkSingleRPC(b *testing.B) {
 }
 
 func BenchmarkOnlyOneRPC(b *testing.B) {
-	cc, err := DialTest(*endpoint)
+	cc, err := DftDial(*endpoint)
 	if err != nil {
 		b.Logf("dial to grpc server fail %v", err)
 	}

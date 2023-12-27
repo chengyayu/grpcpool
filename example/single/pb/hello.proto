@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "github.com/chengyayu/grpcpool/example/pb";
+
+// EchoRequest is the request for echo.
+message EchoRequest {
+  bytes message = 1;
+}
+
+// EchoResponse is the response for echo.
+message EchoResponse {
+  bytes message = 1;
+}
+
+// Echo is the echo service.
+service Echo {
+  // Say is simple request.
+  rpc Say(EchoRequest) returns (EchoResponse) {}
+}

@@ -50,8 +50,3 @@ spec:
           ports:
             - containerPort: 30000
               protocol: TCP
-
-
-channel
-  subchannel-1
-  subchannel-2

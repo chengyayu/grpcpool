@@ -103,8 +103,7 @@ func DftDial(address string) (*grpc.ClientConn, error) {
 		grpc.WithBackoffMaxDelay(BackoffMaxDelay),
 		grpc.WithInitialWindowSize(InitialWindowSize),
 		grpc.WithInitialConnWindowSize(InitialConnWindowSize),
-		grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(MaxSendMsgSize)),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxRecvMsgSize)),
+		grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(MaxSendMsgSize), grpc.MaxCallRecvMsgSize(MaxRecvMsgSize)),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                KeepAliveTime,
 			Timeout:             KeepAliveTimeout,

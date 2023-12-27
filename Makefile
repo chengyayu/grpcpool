@@ -1,6 +1,15 @@
 .PHONY: proto
 proto:
-	protoc --proto_path=./example --go_out=paths=source_relative:./example --go-grpc_out=paths=source_relative:./example ./example/pb/hello.proto
+	protoc --proto_path=./example/single --go_out=paths=source_relative:./example/single --go-grpc_out=paths=source_relative:./example/single ./example/single/pb/hello.proto
+
+.PHONY: build
+build: proto
+	go build -o ./example/single/client/client  ./example/single/client/main.go && \
+	go build -o ./example/single/server/server ./example/single/server/main.go
+
+.PHONY: run
+run: build
+	./example/single/server/server
 
 .PHONY: benchmark
 benchmark: benchmarkOnlyOneRPC benchmarkSingleRPC benchmarkPoolRPC
@@ -14,16 +23,3 @@ benchmarkPoolRPC:
 	go test -run=none -parallel=2 -bench="^BenchmarkPoolRPC" -benchtime=5000x -count=3 -benchmem
 
 
-.PHONY: build deploy
-build:
-	go build -o ./example/client/client  ./example/client/main.go && \
-	go build -o ./example/server/server ./example/server/main.go && \
-	docker buildx build -t grpc-client:v1.1510 -f ./example/client/Dockerfile --load . && \
-	docker buildx build -t grpc-server:v1.1452 -f ./example/server/Dockerfile --load .
-
-deploy:
-	kubectl apply -f ./example/rbac/service-account.yaml && \
-	kubectl apply -f ./example/rbac/role.yaml && \
-	kubectl apply -f ./example/rbac/role_binding.yaml && \
-	kubectl apply -f ./example/server/test-server.yaml && \
-	kubectl apply -f ./example/client/test-client.yaml
