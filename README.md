@@ -2,7 +2,7 @@
 
 ## 特性
 
-- 池化对象为逻辑连接，本质是逻辑连接（subchannel）池。
+- 池化对象为逻辑连接，本质是逻辑连接池。
 - 支持应用层自定义参数。
     - dial func(address string) (*grpc.ClientConn, error) 创建连接的函数，同时支持配置 grpc 连接自定义参数。
     - maxIdle int 连接池内最大空闲（物理）连接数。默认初始化数量与之相同。
