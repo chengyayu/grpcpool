@@ -1,7 +1,5 @@
 # grpcpool
 
-修改自 [github.com/shimingyah/pool](https://github.com/shimingyah/pool)
-
 ## 特性
 
 - 池化对象为逻辑连接，本质是逻辑连接（subchannel）池。
@@ -60,6 +58,14 @@ BenchmarkOnlyOneRPC-8               5000           6037154 ns/op         8403248
 PASS
 ok      github.com/chengyayu/grpcpool   90.410s
 ```
+## 负载均衡
+
+虽然 GRPC 负载均衡不在本库解决范围之内，但是由于 K8S+GRPC 组合的广泛应用，且由于众所周知的原因，K8S service 无法对 GRPC 请求进行负载。
+`example/k8slb` 也给出了一个基于 [kuberesolver](https://github.com/sercand/kuberesolver) 的客户端负载方案 Demo，仅供参考。
+
+## 特别感谢
+
+本库基于 [github.com/shimingyah/pool](https://github.com/shimingyah/pool) 修改而成。
 
 ## 参考资料
 
@@ -67,5 +73,4 @@ ok      github.com/chengyayu/grpcpool   90.410s
 - [需要每次检查连接状态吗？stackoverflow.com](https://stackoverflow.com/questions/64484690/grpc-cpp-how-can-i-check-if-the-rpc-channel-connected-successfully)
 - [GRPC doc 连接状态变化](https://grpc.github.io/grpc/core/md_doc_connectivity-semantics-and-api.html)
 - [GRPC doc 负载均衡机制](https://github.com/grpc/grpc/blob/master/doc/load-balancing.md)
-- [github.com/shimingyah/pool](https://github.com/shimingyah/pool)
 - [GRPC 在 K8S 中的负载均衡](https://www.cnblogs.com/BlueMountain-HaggenDazs/p/17071303.html#kuberesolver)
