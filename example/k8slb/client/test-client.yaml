@@ -16,5 +16,5 @@ spec:
       containers:
         # ------------------- agent ------------------- #
         - name: grpc-agent
-          image: grpc-client:v1.1510
+          image: grpc-client:v0.1
           imagePullPolicy: IfNotPresent

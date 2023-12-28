@@ -45,7 +45,7 @@ spec:
 #          key: node-role.kubernetes.io/master
       containers:
         - name: grpc-server
-          image: grpc-server:v1.1452
+          image: grpc-server:v0.1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 30000
